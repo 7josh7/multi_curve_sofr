@@ -1,0 +1,31 @@
+{
+  "project": {
+    "name": "multi_curve_sofr",
+    "synthetic_data_default": true
+  },
+  "market": {
+    "valuation_date": "2025-04-15",
+    "calendar": "WEEKEND",
+    "business_day_roll": "Modified Following",
+    "futures_day_count": "ACT/360",
+    "swap_fixed_day_count": "ACT/360",
+    "swap_float_day_count": "ACT/360",
+    "swap_pay_freq": "Annual"
+  },
+  "model": {
+    "mean_reversion": 0.03,
+    "sigma": 0.01,
+    "sigma_bounds": [0.0, 0.03],
+    "calibrate_sigma": false
+  },
+  "joint_model": {
+    "libor_calibration_file": "libor_lmm_calibration.csv",
+    "basis_calibration_tenor_years": 5.0,
+    "default_shift": 0.02,
+    "default_correlation_to_ois": 0.65
+  },
+  "risk": {
+    "scenario_bump_bp": 25.0,
+    "key_rates_years": [1.0, 2.0, 5.0, 10.0]
+  }
+}

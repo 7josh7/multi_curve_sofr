@@ -1,0 +1,19 @@
+{
+  "sigma": 0.01,
+  "diagnostics": {
+    "avg_futures_error_bp": 4.1517715191711586e-12,
+    "max_futures_error_bp": 1.609823385706477e-11,
+    "avg_swap_error_bp": 0.0002704130688967342,
+    "max_swap_error_bp": 0.0024337176192379406,
+    "projection_monotone": true,
+    "discount_monotone": true,
+    "positive_projection_dfs": true,
+    "positive_discount_dfs": true
+  },
+  "key_rate_dv01": {
+    "1.0": -868.7037584669888,
+    "2.0": -1674.734196856618,
+    "5.0": -3576.322077445686,
+    "10.0": -61572.37574031204
+  }
+}

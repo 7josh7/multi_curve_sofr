@@ -1,0 +1,22 @@
+# Ignore docs directory (keep docs local)
+docs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+# Jupyter
+.ipynb_checkpoints/
+
+# Virtual envs
+env/
+venv/
+.venv/
+
+# Data and outputs (optional - not excluded by default)
+# data/
+# outputs/
+
+# OS files
+Thumbs.db
+.DS_Store

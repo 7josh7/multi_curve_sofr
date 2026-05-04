@@ -1,0 +1,11 @@
+{
+  "model_scope": "OIS/SOFR Hull-White + shifted-lognormal forward LIBOR calibration",
+  "basis_calibration_tenor_years": 5.0,
+  "curve_hw_sigma": 0.01,
+  "basis_implied_hw_sigma": 0.011073264483627792,
+  "mean_shifted_lmm_vol": 0.21021946930816787,
+  "max_shifted_lmm_vol": 0.33,
+  "mean_basis_vol_at_curve_sigma": 0.012141468518912448,
+  "mean_basis_vol_at_optimal_sigma": 0.012066671307863501,
+  "synthetic_calibration_rows": 20
+}
