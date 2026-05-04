@@ -48,7 +48,7 @@ The exported file contains valuation date, OIS discount curve nodes, SOFR projec
 
 - Discounting uses a synthetic OIS collateral curve loaded from `data/market/ois_curve.csv`.
 - SOFR projection uses deterministic pseudo-discount factors stripped from SOFR futures and swaps.
-- Hull-White convexity uses one factor with constant mean reversion `a` and constant volatility `sigma`.
+- Hull-White convexity uses one factor with constant mean reversion `a`. The paper allows deterministic `sigma(t)`; this implementation uses the constant-`sigma` specialization for the production bootstrap and diagnostics.
 - Business-day logic uses a weekend calendar plus `Following` and `Modified Following`.
 - Day-count support includes `ACT/360`, `ACT/365F`, and `30/360`.
 - Synthetic data is parameterized to be internally consistent, which keeps repricing and diagnostics transparent.
@@ -93,12 +93,14 @@ The default snapshot fixes:
 - `a = 0.03`
 - `sigma = 0.01`
 
-Optional calibration is implemented through `calibrate_sigma_value(...)`, which minimizes zero-curve roughness after the futures/swap splice while keeping `a` fixed. This keeps the MVP deterministic and interview-friendly while still exposing a clean extension point for calibration experiments.
+This is still within Mercurio's framework: the paper specifies deterministic `sigma(t)` in the general Hull-White setup and then gives closed-form constant-`sigma` expressions for the futures convexity adjustments. The current bootstrap uses those constant-`sigma` expressions for the exported market snapshot.
+
+Optional calibration is implemented through `calibrate_sigma_value(...)`, which minimizes zero-curve roughness after the futures/swap splice while keeping `a` fixed. This is a pragmatic curve-construction calibration, not a full OIS-option calibration of a time-dependent volatility term structure.
 
 The joint-model calibration layer uses synthetic LIBOR inputs:
 
 - `shifted_lmm_vol_from_atm(...)` implements Mercurio's shifted-lognormal caplet-vol calibration formula;
-- `hw_sigma_from_basis_minimization(...)` implements the constant-sigma basis-volatility minimizer from Mercurio section 3.6;
+- `hw_sigma_from_basis_minimization(...)` implements the constant-`sigma` basis-volatility minimizer from Mercurio section 3.6;
 - `build_joint_model_calibration(...)` combines the SOFR/OIS curve build with synthetic LIBOR forwards, caplet vols, shifts, and correlations.
 - `pv_libor_swap_with_sofr_fallback(...)` and `pv_libor_sofr_basis_swap_to_libor_payer(...)` implement compact valuation helpers for Mercurio sections 9 and 10.
 
@@ -165,7 +167,7 @@ Bundled example artifacts:
 
 - Holidays are approximated with a weekend-only calendar.
 - The synthetic dataset avoids prompt-contract fixing complications.
-- Hull-White volatility is constant; no time-dependent `sigma(t)` calibration is included.
+- The exported curve snapshot uses the constant-`sigma` specialization of Mercurio's deterministic-volatility Hull-White model. A full time-dependent `sigma(t)` calibration, for example from OIS options or the pointwise basis-volatility condition in section 3.6, is a natural extension.
 - The SOFR-OIS basis is deterministic.
 - The project now calibrates shifted-lognormal forward LIBOR dynamics, but does not yet simulate full LMM paths or price caplets/swaptions.
 - LIBOR fallback and LIBOR-SOFR basis swap valuation are implemented as compact formula helpers, not as full trade objects with production schedule conventions.
