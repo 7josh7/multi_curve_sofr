@@ -8,9 +8,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from .bootstrap import CurveBuildResult, build_full_curves, load_market_data
+from .bootstrap import CurveBuildResult, build_full_curves
 from .config import EngineConfig, load_engine_config
 from .curves import DiscountCurve
+from .data_input import CsvLiborCalibrationDataSource, LiborCalibrationDataSource, MarketDataSource
 from .daycount import yearfrac
 from .hw_model import B
 from .utils import ensure_date
@@ -47,13 +48,13 @@ class JointModelCalibrationResult:
     diagnostics: dict[str, float | str | bool]
 
 
-def load_libor_calibration_data(project_root: str | Path | None = None) -> pd.DataFrame:
+def load_libor_calibration_data(
+    project_root: str | Path | None = None,
+    data_source: LiborCalibrationDataSource | None = None,
+) -> pd.DataFrame:
     config = load_engine_config(project_root)
-    path = config.data_dir / "market" / config.joint_model.libor_calibration_file
-    frame = pd.read_csv(path, parse_dates=["start_date", "end_date"])
-    frame["start_date"] = frame["start_date"].dt.date
-    frame["end_date"] = frame["end_date"].dt.date
-    return frame
+    source = data_source or CsvLiborCalibrationDataSource(config.data_dir)
+    return source.load(config)
 
 
 def shifted_lmm_vol_from_atm(
@@ -157,10 +158,16 @@ def build_joint_model_calibration(
     project_root: str | Path | None = None,
     basis_calibration_tenor_years: float | None = None,
     sigma_override: float | None = None,
+    market_data_source: MarketDataSource | None = None,
+    libor_data_source: LiborCalibrationDataSource | None = None,
 ) -> JointModelCalibrationResult:
     config = load_engine_config(project_root)
-    curve_build = build_full_curves(project_root=project_root, sigma_override=sigma_override)
-    libor_data = load_libor_calibration_data(project_root)
+    curve_build = build_full_curves(
+        project_root=project_root,
+        sigma_override=sigma_override,
+        data_source=market_data_source,
+    )
+    libor_data = load_libor_calibration_data(project_root, data_source=libor_data_source)
     target_tenor = (
         float(basis_calibration_tenor_years)
         if basis_calibration_tenor_years is not None

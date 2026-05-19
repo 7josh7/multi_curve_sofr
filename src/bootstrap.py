@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations #postpones evaluation of type hints
 
 from dataclasses import dataclass
 from datetime import date
@@ -10,23 +10,32 @@ from scipy.optimize import minimize_scalar
 
 from .config import EngineConfig, load_engine_config
 from .curves import DiscountCurve
+from .data_input import CsvMarketDataSource, MarketData, MarketDataSource
 from .daycount import yearfrac
 from .hw_model import U_j_const_sigma, convexity_1m
 from .instruments import FuturesQuote, SwapQuote, build_periods
 from .pricers import par_swap_rate
 from .utils import annualize_bp, ensure_date, tenor_to_months
 
-
-@dataclass(frozen=True)
-class MarketData:
-    config: EngineConfig
-    fixings: pd.DataFrame
-    futures_1m: list[FuturesQuote]
-    futures_3m: list[FuturesQuote]
-    swaps: list[SwapQuote]
-    ois_curve: pd.DataFrame
-
-
+'''
+CSV market data
+   ↓
+MarketData object
+   ↓
+OIS discount curve
+   ↓
+SOFR projection curve:
+   valuation-date DF = 1
+   → 1M futures bootstrap
+   → 3M futures bootstrap
+   → swap bootstrap
+   ↓
+Repricing tables
+   ↓
+Diagnostics
+   ↓
+CurveBuildResult
+'''
 @dataclass(frozen=True)
 class CurveBuildResult:
     config: EngineConfig
@@ -38,59 +47,13 @@ class CurveBuildResult:
     diagnostics: dict[str, float | bool]
 
 
-def load_market_data(project_root: str | Path | None = None) -> MarketData:
+def load_market_data(
+    project_root: str | Path | None = None,
+    data_source: MarketDataSource | None = None,
+) -> MarketData:
     config = load_engine_config(project_root)
-    data_dir = config.data_dir
-
-    fixings = pd.read_csv(data_dir / "fixings" / "sofr_fixings.csv")
-    fixings["date"] = pd.to_datetime(fixings["date"]).dt.date
-
-    futures_1m_df = pd.read_csv(data_dir / "market" / "sofr_1m_futures.csv", parse_dates=["start_date", "end_date"])
-    futures_3m_df = pd.read_csv(data_dir / "market" / "sofr_3m_futures.csv", parse_dates=["start_date", "end_date"])
-    swaps_df = pd.read_csv(data_dir / "market" / "sofr_swaps.csv", parse_dates=["start_date", "end_date"])
-    ois_curve = pd.read_csv(data_dir / "market" / "ois_curve.csv", parse_dates=["end_date"])
-    ois_curve["end_date"] = ois_curve["end_date"].dt.date
-
-    futures_1m = [
-        FuturesQuote(
-            contract_type="SOFR_1M",
-            contract_code=row.contract_code,
-            start_date=ensure_date(row.start_date),
-            end_date=ensure_date(row.end_date),
-            price=float(row.price),
-        )
-        for row in futures_1m_df.itertuples(index=False)
-    ]
-    futures_3m = [
-        FuturesQuote(
-            contract_type="SOFR_3M",
-            contract_code=row.contract_code,
-            start_date=ensure_date(row.start_date),
-            end_date=ensure_date(row.end_date),
-            price=float(row.price),
-        )
-        for row in futures_3m_df.itertuples(index=False)
-    ]
-    swaps = [
-        SwapQuote(
-            tenor=row.tenor,
-            start_date=ensure_date(row.start_date),
-            end_date=ensure_date(row.end_date),
-            fixed_rate=float(row.fixed_rate),
-            pay_freq=row.pay_freq,
-            day_count=row.day_count,
-        )
-        for row in swaps_df.itertuples(index=False)
-    ]
-
-    return MarketData(
-        config=config,
-        fixings=fixings,
-        futures_1m=futures_1m,
-        futures_3m=futures_3m,
-        swaps=swaps,
-        ois_curve=ois_curve,
-    )
+    source = data_source or CsvMarketDataSource(config.data_dir)
+    return source.load(config)
 
 
 def build_discount_curve(valuation_date: date, ois_curve: pd.DataFrame) -> DiscountCurve:
@@ -210,8 +173,9 @@ def build_projection_curve(
     project_root: str | Path | None = None,
     sigma_override: float | None = None,
     mean_reversion_override: float | None = None,
+    data_source: MarketDataSource | None = None,
 ) -> DiscountCurve:
-    market = load_market_data(project_root)
+    market = load_market_data(project_root, data_source=data_source)
     sigma = float(sigma_override) if sigma_override is not None else market.config.model.sigma
     mean_reversion = (
         float(mean_reversion_override) if mean_reversion_override is not None else market.config.model.mean_reversion
@@ -331,8 +295,9 @@ def build_full_curves(
     calibrate_sigma_override: bool | None = None,
     sigma_override: float | None = None,
     mean_reversion_override: float | None = None,
+    data_source: MarketDataSource | None = None,
 ) -> CurveBuildResult:
-    market = load_market_data(project_root)
+    market = load_market_data(project_root, data_source=data_source)
     valuation_date = market.config.market.valuation_date
     discount_curve = build_discount_curve(valuation_date, market.ois_curve)
     a = float(mean_reversion_override) if mean_reversion_override is not None else market.config.model.mean_reversion
