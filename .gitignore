@@ -1,5 +1,6 @@
-# Ignore docs directory (keep docs local)
-docs/
+# Ignore docs directory by default, but allow the published learning guide.
+docs/*
+!docs/project_learning_guide.ipynb
 
 # Python
 __pycache__/
