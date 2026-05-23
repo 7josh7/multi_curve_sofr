@@ -8,7 +8,10 @@
     "projection_monotone": true,
     "discount_monotone": true,
     "positive_projection_dfs": true,
-    "positive_discount_dfs": true
+    "positive_discount_dfs": true,
+    "oos_swap_mae_bp": 5.669679917793685,
+    "oos_swap_max_error_bp": 5.669679917793685,
+    "oos_swap_max_1bp_shock_error_change_bp": 1.001259400213728
   },
   "key_rate_dv01": {
     "1.0": -868.7037584669888,

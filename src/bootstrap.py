@@ -1,6 +1,6 @@
 from __future__ import annotations #postpones evaluation of type hints
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
@@ -44,6 +44,7 @@ class CurveBuildResult:
     sigma: float
     futures_repricing: pd.DataFrame
     swap_repricing: pd.DataFrame
+    oos_swap_repricing: pd.DataFrame
     diagnostics: dict[str, float | bool]
 
 
@@ -270,15 +271,78 @@ def swap_repricing_table(
     return pd.DataFrame(rows)
 
 
+def swap_holdout_repricing_table(
+    market: MarketData,
+    a: float,
+    sigma: float,
+    holdout_tenors: list[str] | None = None,
+    perturbation_bp: float = 1.0,
+) -> pd.DataFrame:
+    """Reprice held-out swaps and perturb training quotes for stability checks."""
+
+    holdouts = holdout_tenors or [market.swaps[-1].tenor]
+    heldout_swaps = [quote for quote in market.swaps if quote.tenor in set(holdouts)]
+    training_swaps = [quote for quote in market.swaps if quote.tenor not in set(holdouts)]
+    if not heldout_swaps or not training_swaps:
+        return pd.DataFrame()
+
+    rows: list[dict[str, float | str]] = []
+    discount_curve = build_discount_curve(market.config.market.valuation_date, market.ois_curve)
+    base_market = replace(market, swaps=training_swaps)
+    base_curve = _projection_curve_from_sigma(base_market, sigma=sigma, a=a)
+    base_errors: dict[str, float] = {}
+
+    for shock_bp in [0.0, -perturbation_bp, perturbation_bp]:
+        if shock_bp == 0.0:
+            projection_curve = base_curve
+        else:
+            shifted_swaps = [
+                replace(quote, fixed_rate=quote.fixed_rate + shock_bp / 10000.0)
+                for quote in training_swaps
+            ]
+            projection_curve = _projection_curve_from_sigma(
+                replace(base_market, swaps=shifted_swaps),
+                sigma=sigma,
+                a=a,
+            )
+        for quote in heldout_swaps:
+            periods = build_periods(
+                quote.start_date,
+                quote.end_date,
+                quote.pay_freq,
+                quote.day_count,
+                calendar=market.config.market.calendar,
+                roll=market.config.market.business_day_roll,
+            )
+            model_rate = par_swap_rate(discount_curve, projection_curve, periods)
+            error_bp = annualize_bp(model_rate - quote.fixed_rate)
+            if shock_bp == 0.0:
+                base_errors[quote.tenor] = error_bp
+            rows.append(
+                {
+                    "Tenor": quote.tenor,
+                    "Validation Type": "held_out_swap",
+                    "Training Quote Shock (bp)": shock_bp,
+                    "Market Rate": quote.fixed_rate,
+                    "Model Rate": model_rate,
+                    "Error (bp)": error_bp,
+                    "Error Change vs Base (bp)": error_bp - base_errors.get(quote.tenor, error_bp),
+                }
+            )
+
+    return pd.DataFrame(rows)
+
+
 def diagnostics_summary(
     discount_curve: DiscountCurve,
     projection_curve: DiscountCurve,
     futures_table: pd.DataFrame,
     swap_table: pd.DataFrame,
+    oos_swap_table: pd.DataFrame | None = None,
 ) -> dict[str, float | bool]:
     projection_dfs = projection_curve.dfs
     discount_dfs = discount_curve.dfs
-    return {
+    diagnostics = {
         "avg_futures_error_bp": float(futures_table["Error (bp)"].abs().mean()),
         "max_futures_error_bp": float(futures_table["Error (bp)"].abs().max()),
         "avg_swap_error_bp": float(swap_table["Error (bp)"].abs().mean()),
@@ -288,6 +352,19 @@ def diagnostics_summary(
         "positive_projection_dfs": bool(np.all(projection_dfs > 0.0)),
         "positive_discount_dfs": bool(np.all(discount_dfs > 0.0)),
     }
+    if oos_swap_table is not None and not oos_swap_table.empty:
+        base = oos_swap_table[oos_swap_table["Training Quote Shock (bp)"] == 0.0]
+        shocked = oos_swap_table[oos_swap_table["Training Quote Shock (bp)"] != 0.0]
+        diagnostics.update(
+            {
+                "oos_swap_mae_bp": float(base["Error (bp)"].abs().mean()),
+                "oos_swap_max_error_bp": float(base["Error (bp)"].abs().max()),
+                "oos_swap_max_1bp_shock_error_change_bp": float(
+                    shocked["Error Change vs Base (bp)"].abs().max()
+                ) if not shocked.empty else 0.0,
+            }
+        )
+    return diagnostics
 
 
 def build_full_curves(
@@ -296,6 +373,7 @@ def build_full_curves(
     sigma_override: float | None = None,
     mean_reversion_override: float | None = None,
     data_source: MarketDataSource | None = None,
+    holdout_swap_tenors: list[str] | None = None,
 ) -> CurveBuildResult:
     market = load_market_data(project_root, data_source=data_source)
     valuation_date = market.config.market.valuation_date
@@ -315,7 +393,19 @@ def build_full_curves(
         sigma=sigma,
     )
     swap_table = swap_repricing_table(market, discount_curve, projection_curve)
-    diagnostics = diagnostics_summary(discount_curve, projection_curve, futures_table, swap_table)
+    oos_swap_table = swap_holdout_repricing_table(
+        market,
+        a=a,
+        sigma=sigma,
+        holdout_tenors=holdout_swap_tenors,
+    ) if holdout_swap_tenors is not None else pd.DataFrame()
+    diagnostics = diagnostics_summary(
+        discount_curve,
+        projection_curve,
+        futures_table,
+        swap_table,
+        oos_swap_table,
+    )
     return CurveBuildResult(
         config=market.config,
         discount_curve=discount_curve,
@@ -323,5 +413,6 @@ def build_full_curves(
         sigma=sigma,
         futures_repricing=futures_table,
         swap_repricing=swap_table,
+        oos_swap_repricing=oos_swap_table,
         diagnostics=diagnostics,
     )

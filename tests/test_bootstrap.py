@@ -13,3 +13,10 @@ def test_bootstrap_diagnostics_show_monotone_positive_curves() -> None:
     assert result.diagnostics["discount_monotone"]
     assert result.diagnostics["positive_projection_dfs"]
     assert result.diagnostics["positive_discount_dfs"]
+
+
+def test_swap_holdout_repricing_reports_oos_and_stability_metrics() -> None:
+    result = build_full_curves(project_root=".", holdout_swap_tenors=["10Y"])
+    assert not result.oos_swap_repricing.empty
+    assert "oos_swap_mae_bp" in result.diagnostics
+    assert "oos_swap_max_1bp_shock_error_change_bp" in result.diagnostics
