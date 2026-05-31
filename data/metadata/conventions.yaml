@@ -15,8 +15,10 @@
   "model": {
     "mean_reversion": 0.03,
     "sigma": 0.01,
-    "sigma_bounds": [0.0, 0.03],
-    "calibrate_sigma": false
+    "sigma_bounds": [0.001, 0.05],
+    "a_bounds": [0.0001, 0.5],
+    "calibrate_sigma": true,
+    "swaption_vols_file": "swaption_vols.csv"
   },
   "joint_model": {
     "libor_calibration_file": "libor_lmm_calibration.csv",

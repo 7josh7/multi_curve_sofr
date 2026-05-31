@@ -13,7 +13,9 @@ class ModelConfig:
     mean_reversion: float
     sigma: float
     sigma_bounds: tuple[float, float]
+    a_bounds: tuple[float, float]
     calibrate_sigma: bool
+    swaption_vols_file: str
 
 
 @dataclass(frozen=True)
@@ -77,7 +79,9 @@ def load_engine_config(project_root: str | Path | None = None) -> EngineConfig:
         mean_reversion=float(model_section["mean_reversion"]),
         sigma=float(model_section["sigma"]),
         sigma_bounds=tuple(float(value) for value in model_section["sigma_bounds"]),
+        a_bounds=tuple(float(value) for value in model_section.get("a_bounds", [0.0001, 1.0])),
         calibrate_sigma=bool(model_section["calibrate_sigma"]),
+        swaption_vols_file=str(model_section.get("swaption_vols_file", "swaption_vols.csv")),
     )
     joint_model = JointModelConfig(
         libor_calibration_file=str(joint_model_section.get("libor_calibration_file", "libor_lmm_calibration.csv")),

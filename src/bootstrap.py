@@ -6,13 +6,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.optimize import minimize_scalar
 
 from .config import EngineConfig, load_engine_config
 from .curves import DiscountCurve
 from .data_input import CsvMarketDataSource, MarketData, MarketDataSource
 from .daycount import yearfrac
-from .hw_model import U_j_const_sigma, convexity_1m
+from .hw_model import SwaptionQuote, U_j_const_sigma, atm_normal_vol, calibrate_hw, convexity_1m
 from .instruments import FuturesQuote, SwapQuote, build_periods
 from .pricers import par_swap_rate
 from .utils import annualize_bp, ensure_date, tenor_to_months
@@ -41,6 +40,7 @@ class CurveBuildResult:
     config: EngineConfig
     discount_curve: DiscountCurve
     projection_curve: DiscountCurve
+    mean_reversion: float
     sigma: float
     futures_repricing: pd.DataFrame
     swap_repricing: pd.DataFrame
@@ -184,19 +184,54 @@ def build_projection_curve(
     return _projection_curve_from_sigma(market, sigma=sigma, a=mean_reversion)
 
 
-def calibrate_sigma_value(
-    market: MarketData,
-    a: float,
-    sigma_bounds: tuple[float, float],
-) -> float:
-    def objective(sigma: float) -> float:
-        curve = _projection_curve_from_sigma(market, sigma=sigma, a=a)
-        zeros = np.array(curve.pillar_zero_rates())
-        second_differences = np.diff(zeros, n=2)
-        return float(np.sum(second_differences**2))
+def _build_swaption_quotes(
+    discount_curve: DiscountCurve,
+    surface: pd.DataFrame,
+) -> list[SwaptionQuote]:
+    """Build SwaptionQuote objects from a swaption vol surface DataFrame.
 
-    result = minimize_scalar(objective, bounds=sigma_bounds, method="bounded")
-    return float(result.x)
+    Assumes annual payment frequency and OIS-implied ATM rates.
+    """
+    quotes: list[SwaptionQuote] = []
+    for _, row in surface.iterrows():
+        T_exp = float(row["expiry_y"])
+        tenor = float(row["tenor_y"])
+        n = int(round(tenor))
+        payment_times = [T_exp + k for k in range(1, n + 1)]
+        tau_i = [1.0] * n
+        annuity = sum(discount_curve.df(T) for T in payment_times)
+        fixed_rate = (discount_curve.df(T_exp) - discount_curve.df(T_exp + tenor)) / annuity
+        quotes.append(
+            SwaptionQuote(
+                T_exp=T_exp,
+                payment_times=payment_times,
+                tau_i=tau_i,
+                fixed_rate=fixed_rate,
+                market_normal_vol=float(row["atm_normal_vol"]),
+            )
+        )
+    return quotes
+
+
+def calibrate_hw_from_surface(
+    discount_curve: DiscountCurve,
+    swaption_vols_path: str,
+    a_init: float = 0.05,
+    sigma_init: float = 0.01,
+    a_bounds: tuple[float, float] = (1e-4, 1.0),
+    sigma_bounds: tuple[float, float] = (1e-5, 0.10),
+) -> tuple[float, float]:
+    """Load a swaption vol CSV and calibrate HW (a, sigma) against it."""
+    surface = pd.read_csv(swaption_vols_path)
+    quotes = _build_swaption_quotes(discount_curve, surface)
+    return calibrate_hw(
+        quotes,
+        discount_curve,
+        a_init=a_init,
+        sigma_init=sigma_init,
+        a_bounds=a_bounds,
+        sigma_bounds=sigma_bounds,
+    )
 
 
 def futures_repricing_table(
@@ -382,7 +417,15 @@ def build_full_curves(
     sigma = float(sigma_override) if sigma_override is not None else market.config.model.sigma
     should_calibrate = calibrate_sigma_override if calibrate_sigma_override is not None else market.config.model.calibrate_sigma
     if should_calibrate and sigma_override is None:
-        sigma = calibrate_sigma_value(market, a=a, sigma_bounds=market.config.model.sigma_bounds)
+        swaption_path = str(market.config.data_dir / "market" / "swaption_vols.csv")
+        a, sigma = calibrate_hw_from_surface(
+            discount_curve,
+            swaption_path,
+            a_init=a,
+            sigma_init=sigma,
+            a_bounds=market.config.model.a_bounds,
+            sigma_bounds=market.config.model.sigma_bounds,
+        )
     projection_curve = _projection_curve_from_sigma(market, sigma=sigma, a=a)
     futures_table = futures_repricing_table(
         projection_curve,
@@ -410,6 +453,7 @@ def build_full_curves(
         config=market.config,
         discount_curve=discount_curve,
         projection_curve=projection_curve,
+        mean_reversion=a,
         sigma=sigma,
         futures_repricing=futures_table,
         swap_repricing=swap_table,
