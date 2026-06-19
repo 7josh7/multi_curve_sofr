@@ -15,6 +15,7 @@ class ModelConfig:
     sigma_bounds: tuple[float, float]
     a_bounds: tuple[float, float]
     calibrate_sigma: bool
+    sigma_calibration_method: str
     swaption_vols_file: str
 
 
@@ -81,6 +82,7 @@ def load_engine_config(project_root: str | Path | None = None) -> EngineConfig:
         sigma_bounds=tuple(float(value) for value in model_section["sigma_bounds"]),
         a_bounds=tuple(float(value) for value in model_section.get("a_bounds", [0.0001, 1.0])),
         calibrate_sigma=bool(model_section["calibrate_sigma"]),
+        sigma_calibration_method=str(model_section.get("sigma_calibration_method", "swaption_surface")),
         swaption_vols_file=str(model_section.get("swaption_vols_file", "swaption_vols.csv")),
     )
     joint_model = JointModelConfig(

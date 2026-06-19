@@ -21,3 +21,6 @@ venv/
 # OS files
 Thumbs.db
 .DS_Store
+# Google Drive sync junk (this repo lives in a Drive folder)
+desktop.ini
+**/desktop.ini

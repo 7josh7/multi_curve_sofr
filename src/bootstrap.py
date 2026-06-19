@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import minimize_scalar
 
 from .config import EngineConfig, load_engine_config
 from .curves import DiscountCurve
@@ -170,10 +171,71 @@ def _projection_curve_from_sigma(market: MarketData, sigma: float, a: float) -> 
     return DiscountCurve(valuation_date, dates, dfs, label="sofr_projection")
 
 
+def sofr_curve_smoothness_objective(market: MarketData, sigma: float, a: float) -> float:
+    """Roughness of the bootstrapped SOFR projection curve for a constant HW sigma.
+
+    This implements the no-OIS-option-data alternative described by Mercurio:
+    fix the mean reversion ``a`` and choose ``sigma`` to make the SOFR curve
+    built from futures and swaps as smooth as possible.
+    """
+
+    if sigma < 0.0:
+        return 1e12
+    try:
+        curve = _projection_curve_from_sigma(market, sigma=sigma, a=a)
+    except Exception:
+        return 1e12
+
+    times = np.asarray(curve.times, dtype=float)
+    dfs = np.asarray(curve.dfs, dtype=float)
+    if times.size < 4 or np.any(dfs <= 0.0) or np.any(np.diff(times) <= 0.0):
+        return 1e12
+
+    log_dfs = np.log(dfs)
+    forwards = -np.diff(log_dfs) / np.diff(times)
+    if not np.all(np.isfinite(forwards)):
+        return 1e12
+
+    # Penalize curvature of adjacent piecewise-constant forwards. Scaling by
+    # interval length keeps long sparse swap intervals from dominating solely
+    # because they are farther apart than the futures intervals.
+    midpoint_times = 0.5 * (times[:-1] + times[1:])
+    forward_jumps = np.diff(forwards)
+    midpoint_gaps = np.diff(midpoint_times)
+    curvature = forward_jumps / np.maximum(midpoint_gaps, 1e-12)
+    objective = float(np.mean(curvature**2))
+
+    monotonicity_penalty = float(np.sum(np.maximum(np.diff(dfs), 0.0) ** 2)) * 1e8
+    return objective + monotonicity_penalty
+
+
+def calibrate_sigma_from_sofr_curve_smoothness(
+    market: MarketData,
+    a: float,
+    sigma_bounds: tuple[float, float],
+) -> float:
+    """Calibrate constant HW sigma by maximizing SOFR projection-curve smoothness."""
+
+    lower, upper = (float(sigma_bounds[0]), float(sigma_bounds[1]))
+    if lower < 0.0 or upper <= lower:
+        raise ValueError("Sigma bounds must satisfy 0 <= lower < upper.")
+
+    result = minimize_scalar(
+        lambda sigma: sofr_curve_smoothness_objective(market, sigma=float(sigma), a=a),
+        bounds=(lower, upper),
+        method="bounded",
+        options={"xatol": 1e-10, "maxiter": 500},
+    )
+    if not result.success:
+        raise RuntimeError(f"SOFR smoothness sigma calibration failed: {result.message}")
+    return float(result.x)
+
+
 def build_projection_curve(
     project_root: str | Path | None = None,
     sigma_override: float | None = None,
     mean_reversion_override: float | None = None,
+    sigma_calibration_method: str | None = None,
     data_source: MarketDataSource | None = None,
 ) -> DiscountCurve:
     market = load_market_data(project_root, data_source=data_source)
@@ -181,6 +243,32 @@ def build_projection_curve(
     mean_reversion = (
         float(mean_reversion_override) if mean_reversion_override is not None else market.config.model.mean_reversion
     )
+    method = (
+        sigma_calibration_method
+        if sigma_calibration_method is not None
+        else market.config.model.sigma_calibration_method
+    )
+    normalized_method = method.lower().replace("-", "_").replace(" ", "_")
+    if sigma_override is None and market.config.model.calibrate_sigma:
+        if normalized_method in {"swaption_surface", "swaption", "ois_option", "ois_options"}:
+            discount_curve = build_discount_curve(market.config.market.valuation_date, market.ois_curve)
+            swaption_path = str(market.config.data_dir / "market" / market.config.model.swaption_vols_file)
+            mean_reversion, sigma = calibrate_hw_from_surface(
+                discount_curve,
+                swaption_path,
+                a_init=mean_reversion,
+                sigma_init=sigma,
+                a_bounds=market.config.model.a_bounds,
+                sigma_bounds=market.config.model.sigma_bounds,
+            )
+        elif normalized_method in {"sofr_curve_smoothness", "curve_smoothness", "smoothness"}:
+            sigma = calibrate_sigma_from_sofr_curve_smoothness(
+                market,
+                a=mean_reversion,
+                sigma_bounds=market.config.model.sigma_bounds,
+            )
+        else:
+            raise ValueError(f"Unsupported sigma calibration method: {method}")
     return _projection_curve_from_sigma(market, sigma=sigma, a=mean_reversion)
 
 
@@ -407,6 +495,7 @@ def build_full_curves(
     calibrate_sigma_override: bool | None = None,
     sigma_override: float | None = None,
     mean_reversion_override: float | None = None,
+    sigma_calibration_method: str | None = None,
     data_source: MarketDataSource | None = None,
     holdout_swap_tenors: list[str] | None = None,
 ) -> CurveBuildResult:
@@ -416,16 +505,31 @@ def build_full_curves(
     a = float(mean_reversion_override) if mean_reversion_override is not None else market.config.model.mean_reversion
     sigma = float(sigma_override) if sigma_override is not None else market.config.model.sigma
     should_calibrate = calibrate_sigma_override if calibrate_sigma_override is not None else market.config.model.calibrate_sigma
+    method = (
+        sigma_calibration_method
+        if sigma_calibration_method is not None
+        else market.config.model.sigma_calibration_method
+    )
+    normalized_method = method.lower().replace("-", "_").replace(" ", "_")
     if should_calibrate and sigma_override is None:
-        swaption_path = str(market.config.data_dir / "market" / "swaption_vols.csv")
-        a, sigma = calibrate_hw_from_surface(
-            discount_curve,
-            swaption_path,
-            a_init=a,
-            sigma_init=sigma,
-            a_bounds=market.config.model.a_bounds,
-            sigma_bounds=market.config.model.sigma_bounds,
-        )
+        if normalized_method in {"swaption_surface", "swaption", "ois_option", "ois_options"}:
+            swaption_path = str(market.config.data_dir / "market" / market.config.model.swaption_vols_file)
+            a, sigma = calibrate_hw_from_surface(
+                discount_curve,
+                swaption_path,
+                a_init=a,
+                sigma_init=sigma,
+                a_bounds=market.config.model.a_bounds,
+                sigma_bounds=market.config.model.sigma_bounds,
+            )
+        elif normalized_method in {"sofr_curve_smoothness", "curve_smoothness", "smoothness"}:
+            sigma = calibrate_sigma_from_sofr_curve_smoothness(
+                market,
+                a=a,
+                sigma_bounds=market.config.model.sigma_bounds,
+            )
+        else:
+            raise ValueError(f"Unsupported sigma calibration method: {method}")
     projection_curve = _projection_curve_from_sigma(market, sigma=sigma, a=a)
     futures_table = futures_repricing_table(
         projection_curve,

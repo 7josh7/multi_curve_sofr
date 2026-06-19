@@ -18,6 +18,7 @@
     "sigma_bounds": [0.001, 0.05],
     "a_bounds": [0.0001, 0.5],
     "calibrate_sigma": true,
+    "sigma_calibration_method": "sofr_curve_smoothness",
     "swaption_vols_file": "swaption_vols.csv"
   },
   "joint_model": {
