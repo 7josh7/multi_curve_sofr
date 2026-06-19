@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import copy
 
-from src.bootstrap import build_full_curves
-from src.export import build_market_snapshot, validate_market_snapshot
+from multi_curve_sofr.bootstrap import build_full_curves
+from multi_curve_sofr.export import build_market_snapshot, validate_market_snapshot
 
 
 def test_export_market_snapshot_schema() -> None:

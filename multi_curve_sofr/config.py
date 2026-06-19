@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import cast
 
 from .utils import ensure_date, project_root_from_here
+
+
+def _pair(values: object) -> tuple[float, float]:
+    pair = cast("Sequence[float]", values)
+    return (float(pair[0]), float(pair[1]))
 
 
 @dataclass(frozen=True)
@@ -58,7 +65,7 @@ class EngineConfig:
 
 def load_engine_config(project_root: str | Path | None = None) -> EngineConfig:
     root = Path(project_root).resolve() if project_root else project_root_from_here(__file__)
-    config_path = root / "data" / "metadata" / "conventions.yaml"
+    config_path = root / "data" / "metadata" / "conventions.json"
     raw = json.loads(config_path.read_text(encoding="utf-8"))
 
     market_section = raw["market"]
@@ -79,8 +86,8 @@ def load_engine_config(project_root: str | Path | None = None) -> EngineConfig:
     model = ModelConfig(
         mean_reversion=float(model_section["mean_reversion"]),
         sigma=float(model_section["sigma"]),
-        sigma_bounds=tuple(float(value) for value in model_section["sigma_bounds"]),
-        a_bounds=tuple(float(value) for value in model_section.get("a_bounds", [0.0001, 1.0])),
+        sigma_bounds=_pair(model_section["sigma_bounds"]),
+        a_bounds=_pair(model_section.get("a_bounds", [0.0001, 1.0])),
         calibrate_sigma=bool(model_section["calibrate_sigma"]),
         sigma_calibration_method=str(model_section.get("sigma_calibration_method", "swaption_surface")),
         swaption_vols_file=str(model_section.get("swaption_vols_file", "swaption_vols.csv")),

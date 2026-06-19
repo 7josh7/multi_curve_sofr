@@ -3,12 +3,11 @@
 from .bootstrap import (
     CurveBuildResult,
     build_full_curves,
-    build_projection_curve,
     calibrate_sigma_from_sofr_curve_smoothness,
     load_market_data,
     sofr_curve_smoothness_objective,
 )
-from .curves import DiscountCurve, ForwardCurve
+from .curves import DiscountCurve
 from .data_input import (
     CsvLiborCalibrationDataSource,
     CsvMarketDataSource,
@@ -32,7 +31,6 @@ __all__ = [
     "DataSchemaError",
     "DataValidationError",
     "DiscountCurve",
-    "ForwardCurve",
     "JointModelCalibrationResult",
     "LiborCalibrationDataSource",
     "MarketData",
@@ -40,7 +38,6 @@ __all__ = [
     "build_full_curves",
     "build_market_snapshot",
     "build_joint_model_calibration",
-    "build_projection_curve",
     "calibrate_sigma_from_sofr_curve_smoothness",
     "export_market_snapshot",
     "load_market_data",

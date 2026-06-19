@@ -4,7 +4,6 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
@@ -188,7 +187,7 @@ def build_joint_model_calibration(
     table = pd.DataFrame(rows)
     target_index = (table["end_time"] - target_tenor).abs().idxmin()
     target_row = table.loc[target_index].to_dict()
-    diagnostics = {
+    diagnostics: dict[str, float | str | bool] = {
         "model_scope": "OIS/SOFR Hull-White + shifted-lognormal forward LIBOR calibration",
         "basis_calibration_tenor_years": float(target_tenor),
         "curve_hw_sigma": float(curve_build.sigma),

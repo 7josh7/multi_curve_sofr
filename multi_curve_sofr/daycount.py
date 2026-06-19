@@ -4,7 +4,6 @@ from datetime import date
 
 from .utils import ensure_date
 
-
 SUPPORTED_DAY_COUNTS = {"ACT/360", "ACT/365F", "30/360"}
 
 

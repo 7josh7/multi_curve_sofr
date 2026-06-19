@@ -43,10 +43,13 @@ def key_rate_dv01(
         def key_bump(time: float, anchor: float = key) -> float:
             return bump * max(0.0, 1.0 - abs(time - anchor) / width)
 
+        def neg_key_bump(time: float, anchor: float = key) -> float:
+            return -key_bump(time, anchor)
+
         discount_up = discount_curve.bump_zero_curve(key_bump)
         projection_up = projection_curve.bump_zero_curve(key_bump)
-        discount_dn = discount_curve.bump_zero_curve(lambda time, anchor=key: -key_bump(time, anchor))
-        projection_dn = projection_curve.bump_zero_curve(lambda time, anchor=key: -key_bump(time, anchor))
+        discount_dn = discount_curve.bump_zero_curve(neg_key_bump)
+        projection_dn = projection_curve.bump_zero_curve(neg_key_bump)
         pv_up = pv_swap(notional, fixed_rate, periods, discount_up, projection_up)
         pv_dn = pv_swap(notional, fixed_rate, periods, discount_dn, projection_dn)
         sensitivities[key] = (pv_dn - pv_up) / 2.0

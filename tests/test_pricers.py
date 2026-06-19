@@ -1,6 +1,6 @@
-from src.bootstrap import build_full_curves, load_market_data
-from src.instruments import build_periods
-from src.pricers import par_swap_rate, pv_swap
+from multi_curve_sofr.bootstrap import build_full_curves, load_market_data
+from multi_curve_sofr.instruments import build_periods
+from multi_curve_sofr.pricers import par_swap_rate, pv_swap
 
 
 def test_market_par_swap_has_near_zero_pv() -> None:

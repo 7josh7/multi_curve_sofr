@@ -1,4 +1,4 @@
-from src.libor_model import (
+from multi_curve_sofr.libor_model import (
     basis_instantaneous_vol,
     build_joint_model_calibration,
     hw_sigma_from_basis_minimization,

@@ -39,31 +39,6 @@ class SwapQuote:
     day_count: str
 
 
-@dataclass(frozen=True)
-class FixedLeg:
-    start_date: date
-    end_date: date
-    pay_freq: str
-    day_count: str
-    calendar: str = "WEEKEND"
-    roll: str = "Modified Following"
-
-    def periods(self) -> list[CashflowPeriod]:
-        return build_periods(
-            self.start_date,
-            self.end_date,
-            self.pay_freq,
-            self.day_count,
-            calendar=self.calendar,
-            roll=self.roll,
-        )
-
-
-@dataclass(frozen=True)
-class FloatingLeg(FixedLeg):
-    pass
-
-
 def build_periods(
     start_date: date,
     end_date: date,
@@ -74,7 +49,7 @@ def build_periods(
 ) -> list[CashflowPeriod]:
     schedule = generate_schedule(start_date, end_date, frequency, calendar=calendar, roll=roll)
     periods: list[CashflowPeriod] = []
-    for start, end in zip(schedule[:-1], schedule[1:]):
+    for start, end in zip(schedule[:-1], schedule[1:], strict=True):
         periods.append(
             CashflowPeriod(
                 start_date=ensure_date(start),

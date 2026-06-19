@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
-from typing import Callable
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class DiscountCurve:
         if len(pillar_dates) != len(dfs):
             raise ValueError("Pillar dates and discount factors must have the same length.")
 
-        sorted_pairs = sorted((ensure_date(pillar), float(df)) for pillar, df in zip(pillar_dates, dfs))
+        sorted_pairs = sorted((ensure_date(pillar), float(df)) for pillar, df in zip(pillar_dates, dfs, strict=True))
         dates = [self.valuation_date]
         values = [1.0]
         for pillar, df in sorted_pairs:
@@ -59,10 +59,10 @@ class DiscountCurve:
         pillar_dates: list[date],
         zero_rates: list[float],
         label: str = "discount",
-    ) -> "DiscountCurve":
+    ) -> DiscountCurve:
         valuation = ensure_date(valuation_date)
         dfs = []
-        for pillar, zero in zip(pillar_dates, zero_rates):
+        for pillar, zero in zip(pillar_dates, zero_rates, strict=True):
             t = yearfrac(valuation, pillar, "ACT/365F")
             dfs.append(math.exp(-float(zero) * t))
         return cls(valuation, pillar_dates, dfs, label=label)
@@ -86,9 +86,6 @@ class DiscountCurve:
             return (math.exp(cont_rate * t) - 1.0) / t
         raise ValueError(f"Unsupported compounding: {comp}")
 
-    def forward_df_ratio(self, start: date | float, end: date | float) -> float:
-        return self.df(end) / self.df(start)
-
     def forward_rate(
         self,
         start: date,
@@ -107,8 +104,8 @@ class DiscountCurve:
     def pillar_zero_rates(self) -> list[float]:
         return [self.zero_rate(time) for time in self.times[1:]]
 
-    def bump_zero_curve(self, bump_fn: Callable[[float], float], label: str | None = None) -> "DiscountCurve":
-        bumped_zeros = [zero + float(bump_fn(time)) for time, zero in zip(self.times[1:], self.pillar_zero_rates())]
+    def bump_zero_curve(self, bump_fn: Callable[[float], float], label: str | None = None) -> DiscountCurve:
+        bumped_zeros = [zero + float(bump_fn(time)) for time, zero in zip(self.times[1:], self.pillar_zero_rates(), strict=True)]
         return DiscountCurve.from_zero_rates(
             valuation_date=self.valuation_date,
             pillar_dates=self.pillar_dates[1:],
@@ -116,20 +113,8 @@ class DiscountCurve:
             label=label or self.label,
         )
 
-    def apply_discount_spread(self, spread: float, label: str | None = None) -> "DiscountCurve":
-        return self.bump_zero_curve(lambda _time: spread, label=label or f"{self.label}_spread")
-
     def nodes(self) -> list[CurveNode]:
         return [
             CurveNode(pillar_date=pillar, time=time, df=df)
-            for pillar, time, df in zip(self.pillar_dates[1:], self.times[1:], self.dfs[1:])
+            for pillar, time, df in zip(self.pillar_dates[1:], self.times[1:], self.dfs[1:], strict=True)
         ]
-
-
-class ForwardCurve:
-    def __init__(self, projection_curve: DiscountCurve, discount_curve: DiscountCurve | None = None) -> None:
-        self.projection_curve = projection_curve
-        self.discount_curve = discount_curve or projection_curve
-
-    def forward_rate(self, start: date, end: date, day_count: str = "ACT/360") -> float:
-        return self.projection_curve.forward_rate(start, end, day_count=day_count, rate_type="simple")

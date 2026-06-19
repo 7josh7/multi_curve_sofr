@@ -85,7 +85,8 @@ def _main():
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
-        w.writeheader(); w.writerows(rows)
+        w.writeheader()
+        w.writerows(rows)
     worst = max(abs(r["diff_bp"]) for r in rows)
     print(f"Wrote {out}  (max |diff| = {worst:.3f} bp vs QuantLib)")
 

@@ -1,6 +1,6 @@
 from datetime import date
 
-from src.curves import DiscountCurve
+from multi_curve_sofr.curves import DiscountCurve
 
 
 def test_curve_df_at_time_zero_is_one() -> None:

@@ -1,4 +1,4 @@
-from src.bootstrap import (
+from multi_curve_sofr.bootstrap import (
     build_full_curves,
     calibrate_sigma_from_sofr_curve_smoothness,
     load_market_data,

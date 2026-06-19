@@ -45,17 +45,17 @@ on $100mm notional.
 ```bash
 pip install -r requirements.txt
 python -m pytest -q                       # 38 tests
-python -m src.cli export-snapshot --output outputs/curves/sofr_market_snapshot.json
+python -m multi_curve_sofr.cli export-snapshot --output outputs/curves/sofr_market_snapshot.json
 
 # optional QuantLib cross-check
 pip install -r requirements-optional.txt
-python -m src.quantlib_bridge             # writes outputs/tables/quantlib_comparison.csv + figure
+python -m multi_curve_sofr.quantlib_bridge             # writes outputs/tables/quantlib_comparison.csv + figure
 ```
 
 Programmatic use:
 
 ```python
-from src.bootstrap import build_full_curves
+from multi_curve_sofr.bootstrap import build_full_curves
 result = build_full_curves(project_root=".")
 print(result.swap_repricing)
 print(result.diagnostics)
@@ -89,8 +89,8 @@ Following, ACT/360, annual SOFR swaps — matched to QuantLib for the cross-chec
 ## Repo layout
 
 ```
-src/            curve build, HW model, pricers, risk, export, quantlib_bridge
-tests/          38 tests incl. QuantLib alignment (skips if QuantLib absent)
+multi_curve_sofr/  curve build, HW model, pricers, risk, export, quantlib_bridge
+tests/          39 tests incl. QuantLib alignment (skips if QuantLib absent)
 data/           synthetic market snapshot (futures, swaps, OIS, fixings)
 notebooks/      00_demo + focused walkthroughs
 outputs/        curves, tables, figures, reports

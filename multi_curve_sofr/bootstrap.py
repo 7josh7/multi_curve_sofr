@@ -1,4 +1,4 @@
-from __future__ import annotations #postpones evaluation of type hints
+from __future__ import annotations  #postpones evaluation of type hints
 
 from dataclasses import dataclass, replace
 from datetime import date
@@ -12,7 +12,7 @@ from .config import EngineConfig, load_engine_config
 from .curves import DiscountCurve
 from .data_input import CsvMarketDataSource, MarketData, MarketDataSource
 from .daycount import yearfrac
-from .hw_model import SwaptionQuote, U_j_const_sigma, atm_normal_vol, calibrate_hw, convexity_1m
+from .hw_model import SwaptionQuote, U_j_const_sigma, calibrate_hw, convexity_1m
 from .instruments import FuturesQuote, SwapQuote, build_periods
 from .pricers import par_swap_rate
 from .utils import annualize_bp, ensure_date, tenor_to_months
@@ -229,47 +229,6 @@ def calibrate_sigma_from_sofr_curve_smoothness(
     if not result.success:
         raise RuntimeError(f"SOFR smoothness sigma calibration failed: {result.message}")
     return float(result.x)
-
-
-def build_projection_curve(
-    project_root: str | Path | None = None,
-    sigma_override: float | None = None,
-    mean_reversion_override: float | None = None,
-    sigma_calibration_method: str | None = None,
-    data_source: MarketDataSource | None = None,
-) -> DiscountCurve:
-    market = load_market_data(project_root, data_source=data_source)
-    sigma = float(sigma_override) if sigma_override is not None else market.config.model.sigma
-    mean_reversion = (
-        float(mean_reversion_override) if mean_reversion_override is not None else market.config.model.mean_reversion
-    )
-    method = (
-        sigma_calibration_method
-        if sigma_calibration_method is not None
-        else market.config.model.sigma_calibration_method
-    )
-    normalized_method = method.lower().replace("-", "_").replace(" ", "_")
-    if sigma_override is None and market.config.model.calibrate_sigma:
-        if normalized_method in {"swaption_surface", "swaption", "ois_option", "ois_options"}:
-            discount_curve = build_discount_curve(market.config.market.valuation_date, market.ois_curve)
-            swaption_path = str(market.config.data_dir / "market" / market.config.model.swaption_vols_file)
-            mean_reversion, sigma = calibrate_hw_from_surface(
-                discount_curve,
-                swaption_path,
-                a_init=mean_reversion,
-                sigma_init=sigma,
-                a_bounds=market.config.model.a_bounds,
-                sigma_bounds=market.config.model.sigma_bounds,
-            )
-        elif normalized_method in {"sofr_curve_smoothness", "curve_smoothness", "smoothness"}:
-            sigma = calibrate_sigma_from_sofr_curve_smoothness(
-                market,
-                a=mean_reversion,
-                sigma_bounds=market.config.model.sigma_bounds,
-            )
-        else:
-            raise ValueError(f"Unsupported sigma calibration method: {method}")
-    return _projection_curve_from_sigma(market, sigma=sigma, a=mean_reversion)
 
 
 def _build_swaption_quotes(

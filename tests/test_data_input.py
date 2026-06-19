@@ -6,10 +6,10 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.bootstrap import build_full_curves, load_market_data
-from src.config import load_engine_config
-from src.data_input import CsvLiborCalibrationDataSource, CsvMarketDataSource, DataSchemaError, MarketData
-from src.libor_model import build_joint_model_calibration
+from multi_curve_sofr.bootstrap import build_full_curves, load_market_data
+from multi_curve_sofr.config import load_engine_config
+from multi_curve_sofr.data_input import CsvLiborCalibrationDataSource, CsvMarketDataSource, DataSchemaError, MarketData
+from multi_curve_sofr.libor_model import build_joint_model_calibration
 
 
 class InMemoryMarketDataSource:

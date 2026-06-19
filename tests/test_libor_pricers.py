@@ -1,11 +1,11 @@
 from datetime import date
 
-from src.bootstrap import build_full_curves
-from src.dates import generate_schedule
-from src.daycount import yearfrac
-from src.instruments import CashflowPeriod
-from src.libor_model import build_joint_model_calibration
-from src.libor_pricers import (
+from multi_curve_sofr.bootstrap import build_full_curves
+from multi_curve_sofr.dates import generate_schedule
+from multi_curve_sofr.daycount import yearfrac
+from multi_curve_sofr.instruments import CashflowPeriod
+from multi_curve_sofr.libor_model import build_joint_model_calibration
+from multi_curve_sofr.libor_pricers import (
     libor_forward_map_from_calibration_table,
     pv_libor_sofr_basis_swap_to_libor_payer,
     pv_libor_swap_with_sofr_fallback,
@@ -16,7 +16,7 @@ def _quarterly_periods(start: date, end: date) -> list[CashflowPeriod]:
     schedule = generate_schedule(start, end, "Quarterly")
     return [
         CashflowPeriod(start_date=left, end_date=right, accrual_factor=yearfrac(left, right, "ACT/360"))
-        for left, right in zip(schedule[:-1], schedule[1:])
+        for left, right in zip(schedule[:-1], schedule[1:], strict=True)
     ]
 
 

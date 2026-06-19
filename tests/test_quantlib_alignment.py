@@ -8,8 +8,8 @@ import pytest
 
 ql = pytest.importorskip("QuantLib")
 
-from src.export import export_market_snapshot
-from src.quantlib_bridge import compare_swaps
+from multi_curve_sofr.export import export_market_snapshot
+from multi_curve_sofr.quantlib_bridge import compare_swaps
 
 ROOT = Path(__file__).resolve().parent.parent
 TOL_BP = 0.5  # engine uses a projection-ratio float leg vs QuantLib's exact compounding

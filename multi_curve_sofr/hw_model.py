@@ -66,10 +66,6 @@ def U_j_const_sigma(a: float, sigma: float, T_prev: float, T_curr: float) -> flo
     )
 
 
-def implied_forward_from_3m_future(future_rate: float, tau: float, U: float) -> float:
-    return ((1.0 + tau * future_rate) * math.exp(-U) - 1.0) / tau
-
-
 # ─── Zero-Coupon Bond Option Pricing ──────────────────────────────────────────
 
 def _zcb_sigma_p(a: float, sigma: float, T_exp: float, T_bond: float) -> float:
@@ -142,15 +138,15 @@ def swaption_price_hw(
     # Jamshidian: find z* such that sum_i c_i * F_i * exp(-sigma_P_i * z) = 1.
     # The function is strictly decreasing in z (all c_i, F_i, sigma_P_i > 0).
     def coupon_bond_value(z: float) -> float:
-        return sum(c * f * math.exp(-sp * z) for c, f, sp in zip(coupons, fwd_bonds, sigma_ps)) - 1.0
+        return sum(c * f * math.exp(-sp * z) for c, f, sp in zip(coupons, fwd_bonds, sigma_ps, strict=True)) - 1.0
 
     z_star = brentq(coupon_bond_value, -30.0, 30.0, xtol=1e-12)
 
     # Per-component ZCB option strikes
-    strikes = [f * math.exp(-sp * z_star) for f, sp in zip(fwd_bonds, sigma_ps)]
+    strikes = [f * math.exp(-sp * z_star) for f, sp in zip(fwd_bonds, sigma_ps, strict=True)]
 
     price = 0.0
-    for c, p0b, k, sp in zip(coupons, p0_bonds, strikes, sigma_ps):
+    for c, p0b, k, sp in zip(coupons, p0_bonds, strikes, sigma_ps, strict=True):
         if is_payer:
             price += c * zcb_put(p0_exp, p0b, k, sp)
         else:
@@ -183,7 +179,7 @@ def atm_normal_vol(
 
     price = swaption_price_hw(a, sigma, discount_curve, T_exp, payment_times, coupons, is_payer=True)
 
-    annuity = sum(t * discount_curve.df(T) for t, T in zip(tau_i, payment_times))
+    annuity = sum(t * discount_curve.df(T) for t, T in zip(tau_i, payment_times, strict=True))
     return price * math.sqrt(2.0 * math.pi) / (annuity * math.sqrt(T_exp))
 
 

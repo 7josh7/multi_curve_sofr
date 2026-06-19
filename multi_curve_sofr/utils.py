@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 
@@ -34,13 +33,3 @@ def annualize_bp(value: float) -> float:
 
 def project_root_from_here(file_path: str | Path) -> Path:
     return Path(file_path).resolve().parents[1]
-
-
-def ensure_directory(path: str | Path) -> Path:
-    resolved = Path(path).resolve()
-    resolved.mkdir(parents=True, exist_ok=True)
-    return resolved
-
-
-def dedupe_sorted_dates(dates: Iterable[date]) -> list[date]:
-    return sorted({ensure_date(item) for item in dates})

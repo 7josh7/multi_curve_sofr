@@ -19,14 +19,33 @@ dependencies = [
 dev = [
   "pytest>=8.0",
   "notebook>=7.0",
+  "ruff>=0.6",
+  "mypy>=1.11",
 ]
 
 [project.scripts]
-sofr-export-snapshot = "src.cli:main"
+sofr-export-snapshot = "multi_curve_sofr.cli:main"
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.setuptools]
-packages = ["src"]
+packages = ["multi_curve_sofr"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]  # line length: not worth hand-wrapping dense math expressions
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]  # imports after pytest.importorskip(...) are intentional
+"*.ipynb" = ["E402"]  # notebooks set up sys.path / PROJECT_ROOT before importing
+
+[tool.mypy]
+python_version = "3.10"
+files = ["multi_curve_sofr"]
+ignore_missing_imports = true  # ponytail: pandas/scipy/QuantLib ship no stubs; type our code, not theirs

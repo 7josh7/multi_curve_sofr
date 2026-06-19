@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import math
 from datetime import date
 
 import pytest
 
-from src.curves import DiscountCurve
-from src.hw_model import (
+from multi_curve_sofr.curves import DiscountCurve
+from multi_curve_sofr.hw_model import (
     A_const_sigma,
     SwaptionQuote,
     U_j_const_sigma,
@@ -107,7 +106,7 @@ def test_payer_receiver_put_call_parity(ois_curve: DiscountCurve) -> None:
     receiver = swaption_price_hw(a, sigma, ois_curve, T_exp, payment_times, coupons, is_payer=False)
 
     # At t=0, forward swap value for the fixed-rate receiver = CB(0) - P(0,T_exp)
-    cb0 = sum(c * ois_curve.df(T) for c, T in zip(coupons, payment_times))
+    cb0 = sum(c * ois_curve.df(T) for c, T in zip(coupons, payment_times, strict=True))
     fwd_swap_recv = cb0 - ois_curve.df(T_exp)
 
     assert abs((receiver - payer) - fwd_swap_recv) < 1e-8
