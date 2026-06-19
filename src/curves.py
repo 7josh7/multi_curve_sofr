@@ -25,7 +25,8 @@ class DiscountCurve:
         valuation_date: date,
         pillar_dates: list[date],
         dfs: list[float],
-        interpolator_cls: type[LogDFInterpolator] = LogDFInterpolator, #type[] means the argument should be a class that is a subclass of LogDFInterpolator or like it, not an instance of it.
+        interpolator_cls: type[LogDFInterpolator] = LogDFInterpolator, 
+        #type[] means the argument should be a class that is a subclass of LogDFInterpolator or like it, not an instance of it. That lets you swap interpolation implementations without changing DiscountCurve.
         label: str = "discount",
     ) -> None:
         self.valuation_date = ensure_date(valuation_date)

@@ -1,6 +1,13 @@
 """Collateral-aware multi-curve SOFR engine."""
 
-from .bootstrap import CurveBuildResult, build_full_curves, build_projection_curve, load_market_data
+from .bootstrap import (
+    CurveBuildResult,
+    build_full_curves,
+    build_projection_curve,
+    calibrate_sigma_from_sofr_curve_smoothness,
+    load_market_data,
+    sofr_curve_smoothness_objective,
+)
 from .curves import DiscountCurve, ForwardCurve
 from .data_input import (
     CsvLiborCalibrationDataSource,
@@ -34,12 +41,14 @@ __all__ = [
     "build_market_snapshot",
     "build_joint_model_calibration",
     "build_projection_curve",
+    "calibrate_sigma_from_sofr_curve_smoothness",
     "export_market_snapshot",
     "load_market_data",
     "par_swap_rate",
     "pv_libor_sofr_basis_swap_to_libor_payer",
     "pv_libor_swap_with_sofr_fallback",
     "pv_swap",
+    "sofr_curve_smoothness_objective",
     "validate_market_snapshot",
     "write_market_snapshot",
 ]
