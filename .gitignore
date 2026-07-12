@@ -30,3 +30,7 @@ Thumbs.db
 # Google Drive sync junk (this repo lives in a Drive folder)
 desktop.ini
 **/desktop.ini
+
+# Local review artifacts
+HIRING_MANAGER_REVIEW.md
+MODEL_VALIDATION.md
