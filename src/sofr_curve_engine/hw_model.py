@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
+from scipy.integrate import trapezoid
 from scipy.optimize import brentq, minimize
 from scipy.stats import norm as _norm
 
@@ -30,7 +31,7 @@ def A_const_sigma(a: float, sigma: float, t: float, T: float, n_grid: int = 2000
         raise ValueError("Bond maturity must be on or after the evaluation time.")
     grid = np.linspace(t, T, n_grid)
     values = sigma**2 * np.array([B(a, point, T) ** 2 for point in grid])
-    integral = float(np.trapz(values, grid))
+    integral = float(trapezoid(values, x=grid))
     return math.exp(0.5 * integral)
 
 

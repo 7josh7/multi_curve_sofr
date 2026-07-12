@@ -69,6 +69,22 @@ def test_a_term_is_one_when_sigma_is_zero() -> None:
     assert abs(A_const_sigma(a=0.03, sigma=0.0, t=0.0, T=2.0) - 1.0) < 1e-12
 
 
+def test_a_term_matches_constant_sigma_integral() -> None:
+    a = 0.03
+    sigma = 0.01
+    t = 0.25
+    maturity = 2.0
+    horizon = maturity - t
+    integrated_b_squared = (
+        horizon
+        - 2.0 * (1.0 - math.exp(-a * horizon)) / a
+        + (1.0 - math.exp(-2.0 * a * horizon)) / (2.0 * a)
+    ) / a**2
+    expected = math.exp(0.5 * sigma**2 * integrated_b_squared)
+
+    assert A_const_sigma(a=a, sigma=sigma, t=t, T=maturity) == pytest.approx(expected, rel=1e-9)
+
+
 # ─── ZCB Option Tests ─────────────────────────────────────────────────────────
 
 def test_zcb_put_call_parity() -> None:

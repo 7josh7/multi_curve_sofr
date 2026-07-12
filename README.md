@@ -138,7 +138,8 @@ failure handling, Hull-White identities and round trips, LIBOR extension
 identities, snapshot contract enforcement, PV01 sign/bump normalization,
 key-rate reconciliation, and optional QuantLib alignment.
 
-GitHub Actions runs core tests, Ruff, and mypy across Python 3.10-3.13. A
+GitHub Actions runs core tests across Python 3.10-3.13. Ruff and mypy run in a
+dedicated Python 3.10 job matching the minimum supported language target. A
 separate job installs QuantLib so the external-library check cannot silently
 skip in CI.
 
