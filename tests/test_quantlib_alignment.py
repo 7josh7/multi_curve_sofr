@@ -6,10 +6,12 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.quantlib
+
 ql = pytest.importorskip("QuantLib")
 
-from src.export import export_market_snapshot
-from src.quantlib_bridge import compare_swaps
+from sofr_curve_engine.export import export_market_snapshot
+from sofr_curve_engine.quantlib_bridge import compare_swaps
 
 ROOT = Path(__file__).resolve().parent.parent
 TOL_BP = 0.5  # engine uses a projection-ratio float leg vs QuantLib's exact compounding

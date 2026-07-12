@@ -4,7 +4,6 @@ from datetime import date, timedelta
 
 from .utils import ensure_date
 
-
 SUPPORTED_ROLLS = {"FOLLOWING", "MODIFIED FOLLOWING"}
 
 

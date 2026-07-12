@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date, datetime
 from pathlib import Path
-from typing import Iterable
 
 import pandas as pd
 
@@ -33,7 +33,7 @@ def annualize_bp(value: float) -> float:
 
 
 def project_root_from_here(file_path: str | Path) -> Path:
-    return Path(file_path).resolve().parents[1]
+    return Path(file_path).resolve().parents[2]
 
 
 def ensure_directory(path: str | Path) -> Path:

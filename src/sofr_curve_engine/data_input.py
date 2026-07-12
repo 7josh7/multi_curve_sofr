@@ -4,7 +4,7 @@ import math
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, cast, runtime_checkable
 
 import pandas as pd
 
@@ -112,7 +112,7 @@ class _CsvDataSource:
         if self._is_missing(value):
             raise DataValidationError(f"{self._cell(path, column, row_number)}: numeric value is required")
         try:
-            parsed = float(value)
+            parsed = float(cast(Any, value))
         except (TypeError, ValueError) as exc:
             raise DataValidationError(
                 f"{self._cell(path, column, row_number)}: invalid numeric value {value!r}"

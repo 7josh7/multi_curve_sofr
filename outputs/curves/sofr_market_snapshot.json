@@ -1,6 +1,26 @@
 {
+  "schema_version": "1.0",
   "valuation_date": "2025-04-15",
-  "source": "multi_curve_sofr",
+  "source": "sofr_curve_engine",
+  "source_revision": "0.2.0",
+  "conventions": {
+    "time_basis": "ACT/365F",
+    "zero_rate_compounding": "continuous",
+    "canonical_representation": "discount_factor",
+    "calendar": "WEEKEND",
+    "business_day_roll": "Modified Following",
+    "futures_day_count": "ACT/360",
+    "swap_fixed_day_count": "ACT/360",
+    "swap_float_day_count": "ACT/360",
+    "swap_pay_frequency": "Annual"
+  },
+  "units": {
+    "rates": "decimal",
+    "volatility": "decimal_annualized",
+    "discount_factors": "unitless",
+    "time": "years",
+    "errors": "basis_points"
+  },
   "discount_curve": {
     "label": "ois_discount",
     "nodes": [
@@ -66,134 +86,157 @@
       {
         "date": "2025-05-15",
         "time": 0.0821917808219178,
-        "df": 0.9964440858224787,
-        "zero_rate": 0.04334072619450272
+        "df": 0.9964440765838087,
+        "zero_rate": 0.04334083899944555
       },
       {
         "date": "2025-06-16",
         "time": 0.16986301369863013,
-        "df": 0.9926062482709864,
-        "zero_rate": 0.04368944618442918
+        "df": 0.99260616719566,
+        "zero_rate": 0.043689927038053814
       },
       {
         "date": "2025-07-15",
         "time": 0.2493150684931507,
-        "df": 0.9890918183938846,
-        "zero_rate": 0.043992976859501105
+        "df": 0.9890915634046175,
+        "zero_rate": 0.043994010898264005
       },
       {
         "date": "2025-08-15",
         "time": 0.33424657534246577,
-        "df": 0.9853003370286642,
-        "zero_rate": 0.044304937400460015
+        "df": 0.9852997261139707,
+        "zero_rate": 0.044306792405559424
       },
       {
         "date": "2025-09-15",
         "time": 0.4191780821917808,
-        "df": 0.9814764419532845,
-        "zero_rate": 0.044604592733488956
+        "df": 0.9814752439492284,
+        "zero_rate": 0.04460750465796804
       },
       {
         "date": "2025-10-15",
         "time": 0.5013698630136987,
-        "df": 0.9777481094410216,
-        "zero_rate": 0.04488342955892271
+        "df": 0.9777460710707975,
+        "zero_rate": 0.04488758769127999
       },
       {
         "date": "2026-01-15",
         "time": 0.7534246575342466,
-        "df": 0.9661723537346837,
-        "zero_rate": 0.04567549034299058
+        "df": 0.9661767997413759,
+        "zero_rate": 0.04566938268546161
       },
       {
         "date": "2026-04-15",
         "time": 1.0,
-        "df": 0.9546904174716431,
-        "zero_rate": 0.046368161242681026
+        "df": 0.9547059254545368,
+        "zero_rate": 0.04635191738325233
       },
       {
         "date": "2026-07-15",
         "time": 1.2493150684931507,
-        "df": 0.9429761604939723,
-        "zero_rate": 0.046997173605895316
+        "df": 0.9430088004541166,
+        "zero_rate": 0.0469694678877363
       },
       {
         "date": "2026-10-15",
         "time": 1.5013698630136987,
-        "df": 0.9310704543728259,
-        "zero_rate": 0.047570109344622455
+        "df": 0.9311275686279769,
+        "zero_rate": 0.04752925286361281
       },
       {
         "date": "2027-01-15",
         "time": 1.7534246575342465,
-        "df": 0.9191376359268919,
-        "zero_rate": 0.048088408258355704
+        "df": 0.9192273635780231,
+        "zero_rate": 0.04803273617899149
       },
       {
         "date": "2027-04-15",
         "time": 2.0,
-        "df": 0.9074656023969528,
-        "zero_rate": 0.0485498086281561
+        "df": 0.9075958625602905,
+        "zero_rate": 0.04847804237336191
       },
       {
         "date": "2028-04-17",
         "time": 3.0082191780821916,
-        "df": 0.8601389394929968,
-        "zero_rate": 0.05008323407127966
+        "df": 0.8601320113769801,
+        "zero_rate": 0.05008591162884095
       },
       {
         "date": "2029-04-16",
         "time": 4.005479452054795,
-        "df": 0.814466725505736,
-        "zero_rate": 0.05123524084802375
+        "df": 0.8144601652633063,
+        "zero_rate": 0.051237251763346876
       },
       {
         "date": "2030-04-15",
         "time": 5.002739726027397,
-        "df": 0.7702240156919885,
-        "zero_rate": 0.05218618022796471
+        "df": 0.7702178118089941,
+        "zero_rate": 0.05218779028174474
       },
       {
         "date": "2031-04-15",
         "time": 6.002739726027397,
-        "df": 0.7273798693137205,
-        "zero_rate": 0.053026857100365116
+        "df": 0.7273740105252252,
+        "zero_rate": 0.053028198934323326
       },
       {
         "date": "2032-04-15",
         "time": 7.005479452054795,
-        "df": 0.6859562237568083,
-        "zero_rate": 0.05380666229025348
+        "df": 0.6859506986211792,
+        "zero_rate": 0.0538078120588113
       },
       {
         "date": "2033-04-15",
         "time": 8.005479452054795,
-        "df": 0.6461598488071808,
-        "zero_rate": 0.0545511814064666
+        "df": 0.6461546442173263,
+        "zero_rate": 0.054552187552326416
       },
       {
         "date": "2034-04-17",
         "time": 9.01095890410959,
-        "df": 0.6076726970478113,
-        "zero_rate": 0.05527922993444265
+        "df": 0.6076678024584001,
+        "zero_rate": 0.055280123810454315
       },
       {
         "date": "2035-04-16",
         "time": 10.008219178082191,
-        "df": 0.5709972423456975,
-        "zero_rate": 0.05599106982810267
+        "df": 0.5709926431641482,
+        "zero_rate": 0.05599187463461853
       }
     ]
   },
   "model": {
     "mean_reversion": 0.03,
-    "sigma": 0.01
+    "sigma": 0.0010000000679601041,
+    "calibration": {
+      "method": "sofr_curve_smoothness_regularization_proxy",
+      "converged": true,
+      "objective_value": 1.937468426524586e-05,
+      "message": "Solution found.; sigma is pinned to the lower bound and is a regularization proxy, not option-implied volatility",
+      "iterations": 43,
+      "function_evaluations": 43,
+      "parameter_values": {
+        "sigma": 0.0010000000679601041,
+        "a_fixed": 0.03
+      },
+      "parameter_bounds": {
+        "sigma": [
+          0.001,
+          0.05
+        ]
+      },
+      "boundary_hit": true,
+      "boundary_hits": {
+        "sigma": "lower"
+      },
+      "is_regularization_proxy": true
+    }
   },
   "diagnostics": {
-    "avg_futures_error_bp": 4.1517715191711586e-12,
-    "max_futures_error_bp": 1.609823385706477e-11,
-    "avg_swap_error_bp": 0.0002704130688967342,
-    "max_swap_error_bp": 0.0024337176192379406,
+    "avg_futures_error_bp": 2.474872159060245e-12,
+    "max_futures_error_bp": 6.106226635438361e-12,
+    "avg_swap_error_bp": 0.08138095139611594,
+    "max_swap_error_bp": 0.7324285625638638,
     "projection_monotone": true,
     "discount_monotone": true,
     "positive_projection_dfs": true,

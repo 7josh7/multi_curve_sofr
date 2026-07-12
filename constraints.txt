@@ -1,0 +1,12 @@
+# Upper bounds make CI and local development repeatable while pyproject.toml
+# remains usable as a library with compatible lower bounds.
+numpy<3
+pandas<3
+scipy<2
+matplotlib<4
+pytest<10
+notebook<8
+ruff<1
+mypy<2
+build<2
+QuantLib<2

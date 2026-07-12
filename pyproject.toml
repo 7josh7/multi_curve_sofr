@@ -1,13 +1,15 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "multi-curve-sofr"
-version = "0.1.0"
+version = "0.2.0"
 description = "Collateral-aware SOFR multi-curve bootstrap, pricing, and risk engine."
 readme = "README.md"
 requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
   "numpy>=1.26",
   "pandas>=2.1",
@@ -17,16 +19,43 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",
-  "notebook>=7.0",
+  "pytest>=8.0,<10",
+  "notebook>=7.0,<8",
+  "ruff>=0.6,<1",
+  "mypy>=1.11,<2",
+  "build>=1.2,<2",
 ]
+quantlib = ["QuantLib>=1.42,<2"]
 
 [project.scripts]
-sofr-export-snapshot = "src.cli:main"
+sofr-export-snapshot = "sofr_curve_engine.cli:main"
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+  "quantlib: tests requiring the optional QuantLib dependency",
+]
 
 [tool.setuptools]
-packages = ["src"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E402"]
+"*.ipynb" = ["E402", "F401", "I001"]
+
+[tool.mypy]
+python_version = "3.10"
+files = ["src/sofr_curve_engine"]
+ignore_missing_imports = true

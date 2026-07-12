@@ -1,6 +1,6 @@
 from datetime import date
 
-from src.daycount import yearfrac
+from sofr_curve_engine.daycount import yearfrac
 
 
 def test_act_360() -> None:

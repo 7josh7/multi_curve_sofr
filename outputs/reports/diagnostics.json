@@ -1,22 +1,45 @@
 {
-  "sigma": 0.01,
+  "sigma": 0.0010000000679601041,
+  "calibration": {
+    "method": "sofr_curve_smoothness_regularization_proxy",
+    "converged": true,
+    "objective_value": 1.937468426524586e-05,
+    "message": "Solution found.; sigma is pinned to the lower bound and is a regularization proxy, not option-implied volatility",
+    "iterations": 43,
+    "function_evaluations": 43,
+    "parameter_values": {
+      "sigma": 0.0010000000679601041,
+      "a_fixed": 0.03
+    },
+    "parameter_bounds": {
+      "sigma": [
+        0.001,
+        0.05
+      ]
+    },
+    "boundary_hit": true,
+    "boundary_hits": {
+      "sigma": "lower"
+    },
+    "is_regularization_proxy": true
+  },
   "diagnostics": {
-    "avg_futures_error_bp": 4.1517715191711586e-12,
-    "max_futures_error_bp": 1.609823385706477e-11,
-    "avg_swap_error_bp": 0.0002704130688967342,
-    "max_swap_error_bp": 0.0024337176192379406,
+    "avg_futures_error_bp": 2.474872159060245e-12,
+    "max_futures_error_bp": 6.106226635438361e-12,
+    "avg_swap_error_bp": 0.08138095139611594,
+    "max_swap_error_bp": 0.7324285625638638,
     "projection_monotone": true,
     "discount_monotone": true,
     "positive_projection_dfs": true,
     "positive_discount_dfs": true,
-    "oos_swap_mae_bp": 5.669679917793685,
-    "oos_swap_max_error_bp": 5.669679917793685,
-    "oos_swap_max_1bp_shock_error_change_bp": 1.001259400213728
+    "oos_swap_mae_bp": 5.66897301861706,
+    "oos_swap_max_error_bp": 5.66897301861706,
+    "oos_swap_max_1bp_shock_error_change_bp": 1.0012554166495544
   },
   "key_rate_dv01": {
-    "1.0": -868.7037584669888,
-    "2.0": -1674.734196856618,
-    "5.0": -3576.322077445686,
-    "10.0": -61572.37574031204
+    "1.0": 532.6135428510606,
+    "2.0": 2581.8838011212647,
+    "5.0": 9248.005733951926,
+    "10.0": 66850.20048747584
   }
 }

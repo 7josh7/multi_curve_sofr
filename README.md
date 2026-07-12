@@ -1,115 +1,167 @@
 # Collateral-Aware SOFR Curve & Risk Engine
 
-A Python engine that bootstraps a dual-curve SOFR/OIS framework from futures and
-swaps, prices collateral-aware fixed-vs-SOFR swaps, and produces curve, risk, and
-scenario diagnostics — **independently validated against QuantLib**.
+A typed Python package for building separate OIS discount and SOFR projection
+curves, pricing fixed-vs-SOFR swaps, and producing curve and scenario risk. The
+repository ships a synthetic snapshot so the workflow is reproducible without
+a market-data license.
 
-It strips a SOFR projection curve from 1m/3m SOFR futures (with a Hull-White
-convexity adjustment) and SOFR swaps, discounts on a separate OIS collateral
-curve, and exports a market-snapshot JSON that downstream valuation or xVA code
-can consume without importing this package. Synthetic data ships by default, so
-the full workflow runs out of the box.
+This is a research and portfolio implementation, not a production trading or
+valuation system. In particular, the floating leg uses projection-curve ratios
+rather than full daily SOFR compounding, and the holiday calendar is
+weekend-only.
 
 ## Results at a glance
 
-Valuation date 2025-04-15, bundled synthetic snapshot (`a = 0.03`, σ auto-calibrated):
+For the bundled 2025-04-15 synthetic snapshot:
 
-| What | Result |
-|---|---|
-| **SOFR futures repricing** (12 contracts, 1m + 3m) | max error **6e-12 bp** — exact to machine precision |
-| **Swap repricing** (2Y–10Y) | avg **0.08 bp**, max **0.73 bp** |
-| **Independent QuantLib check** (par rates, 2Y–10Y) | agree to within **0.28 bp** |
-| **σ calibration** (no OIS-option data) | SOFR-curve-smoothness objective → σ ≈ **0.0010** |
-| **Curve sanity** | discount & projection DFs positive and monotone |
+| Check | Fresh result |
+|---|---:|
+| SOFR futures repricing (12 contracts) | max error about **6e-12 bp** |
+| Swap repricing (2Y-10Y) | average about **0.08 bp**, max about **0.73 bp** |
+| QuantLib swap-pricing cross-check | max par-rate gap about **0.28 bp** |
+| Discount/projection curve sanity | positive and monotone DFs |
+| Smoothness regularization proxy | `sigma` approximately **0.001**, at the lower bound |
 
-### Validated against QuantLib
+Exact in-sample repricing is a bootstrap identity, not independent model
+validation. The QuantLib check reuses the exported curves and therefore tests
+swap-pricing and convention alignment; it does not independently rebuild the
+curves from raw instruments. A 10Y holdout example is included under
+`outputs/tables/oos_swap_repricing.csv` and currently misses by roughly 5.67 bp.
 
-The same exported snapshot is repriced with QuantLib's own OIS machinery
-(`ql.Sofr` + `ql.MakeOIS`, OIS-discounted), so agreement is a true third-party
-check rather than the engine grading itself. Par-rate gaps across the curve:
+## Install and run
 
-| Tenor | Engine market rate | QuantLib fair rate | Diff (bp) |
-|------|------:|------:|------:|
-| 2Y | 4.9013% | 4.8985% | -0.28 |
-| 5Y | 5.2591% | 5.2607% | +0.16 |
-| 10Y | 5.6047% | 5.6057% | +0.10 |
-
-Full table: [`outputs/tables/quantlib_comparison.csv`](outputs/tables/quantlib_comparison.csv).
-The sub-bp residual is expected and documented: the engine's floating leg uses a
-projection-curve ratio approximation, while QuantLib compounds SOFR daily. The
-comparison also reports a DV01 ladder from ~$18.9k (2Y) to ~$77.0k (10Y) per bp
-on $100mm notional.
-
-## Quickstart
+Python 3.10-3.13 is supported.
 
 ```bash
-pip install -r requirements.txt
-python -m pytest -q                       # 38 tests
-python -m src.cli export-snapshot --output outputs/curves/sofr_market_snapshot.json
+python -m pip install -e .
+python -m pytest -q                       # 55 tests; QuantLib test skips if absent
+python -m sofr_curve_engine.cli export-snapshot \
+  --output outputs/curves/sofr_market_snapshot.json
+```
 
-# optional QuantLib cross-check
-pip install -r requirements-optional.txt
-python -m src.quantlib_bridge             # writes outputs/tables/quantlib_comparison.csv + figure
+For development, use the shared compatibility constraints:
+
+```bash
+python -m pip install -c constraints.txt -e ".[dev]"
+ruff check .
+mypy
+pytest -q -m "not quantlib"
+```
+
+The optional swap-pricing comparison is isolated from the core install:
+
+```bash
+python -m pip install -c constraints.txt -e ".[quantlib]"
+pytest -q -m quantlib
+python -m sofr_curve_engine.quantlib_bridge
 ```
 
 Programmatic use:
 
 ```python
-from src.bootstrap import build_full_curves
+from sofr_curve_engine import build_full_curves
+
 result = build_full_curves(project_root=".")
 print(result.swap_repricing)
-print(result.diagnostics)
+print(result.calibration_diagnostics.to_dict())
 ```
 
-Start with `notebooks/00_project_demo.ipynb` for the end-to-end showcase.
+Start with `notebooks/00_project_demo.ipynb` for the end-to-end walkthrough.
 
-## Methods
+## Model scope
 
-- **Dual-curve construction.** OIS discount curve from collateral zero pillars; a
-  separate SOFR projection curve stripped from 1m/3m SOFR futures and swaps, with
-  swaps solved recursively under OIS discounting. Interpolation is log-linear on
-  discount factors to keep them positive and monotone.
-- **Hull-White convexity.** One-factor, constant mean reversion `a`; futures use
-  the closed-form constant-σ convexity adjustment
-  (`B(t,T) = (1 - e^{-a(T-t)})/a`).
-- **Smoothness σ-calibration.** With no OIS-option data, σ is chosen to maximize
-  SOFR-projection-curve smoothness (the Mercurio no-option-data alternative) —
-  here it pins σ to its lower bound, i.e. minimal convexity is preferred by the
-  data.
-- **Joint-model layer.** Shifted-lognormal LMM caplet-vol calibration for forward
-  LIBOR, Hull-White for OIS/SOFR, and Mercurio's multiplicative LIBOR-OIS basis;
-  the basis-implied σ cross-checks the curve σ.
-- **Risk.** PV01, key-rate DV01, and a scenario engine: parallel shifts,
-  2s10s steepener/flattener, front-end stress, basis widening, funding-spread
-  overlays, and a convexity-off comparison.
+- **Dual curves.** OIS zero pillars define the collateral discount curve. A
+  separate SOFR pseudo-discount curve is stripped from 1m/3m futures and annual
+  SOFR swaps under OIS discounting.
+- **Interpolation.** Discount factors are interpolated log-linearly and the
+  exported schema treats discount factors as the canonical representation.
+- **Hull-White overlay.** One-factor constant-parameter formulas supply futures
+  convexity adjustments and an optional swaption-surface calibration.
+- **Smoothness regularization proxy.** When option data are not used, fixed
+  mean reversion and curve smoothness select `sigma`. The bundled solution is
+  pinned to the lower bound, so it is explicitly reported as a regularization
+  proxy—not as market-implied volatility.
+- **Joint-model extension.** A shifted-lognormal forward-LIBOR layer reports
+  caplet-vol transforms, multiplicative basis diagnostics, and a basis-implied
+  Hull-White sigma cross-check.
+- **Risk.** Signed payer PV01, partitioned key-rate DV01, and curve scenarios are
+  computed by central bump-and-revalue. PV01 is normalized to one basis point.
 
-Conventions (`data/metadata/conventions.yaml`): WEEKEND calendar, Modified
-Following, ACT/360, annual SOFR swaps — matched to QuantLib for the cross-check.
+## Snapshot contract: schema 1.0
 
-## Repo layout
+`sofr-export-snapshot` emits a validated JSON contract intended for downstream
+valuation and xVA consumers. Version `1.0` preserves the existing curve-node
+shape and adds explicit metadata:
 
+- `schema_version: "1.0"`;
+- `source` and `source_revision`;
+- canonical units;
+- `conventions.time_basis: "ACT/365F"`;
+- `conventions.zero_rate_compounding: "continuous"`;
+- `conventions.canonical_representation: "discount_factor"`;
+- structured optimizer convergence, objective, parameter-bound, and boundary
+  diagnostics under `model.calibration`.
+
+Validation rejects non-finite values, unsupported schema/conventions, invalid
+dates or times, non-positive discount factors, and zero rates that do not
+reconcile to `-log(df) / time`.
+
+## Repository layout
+
+```text
+src/sofr_curve_engine/   installable package: curves, models, pricing, risk, export
+tests/                   unit, contract, risk, and optional QuantLib checks
+data/                    synthetic market inputs and explicit conventions
+notebooks/               demo plus focused walkthroughs
+docs/                    learning guide
+outputs/                 versioned example snapshots, tables, reports, and figures
+.github/workflows/       Python matrix CI plus optional QuantLib job
 ```
-src/            curve build, HW model, pricers, risk, export, quantlib_bridge
-tests/          38 tests incl. QuantLib alignment (skips if QuantLib absent)
-data/           synthetic market snapshot (futures, swaps, OIS, fixings)
-notebooks/      00_demo + focused walkthroughs
-outputs/        curves, tables, figures, reports
-docs/           Mercurio joint-model alignment note
+
+The core architecture is:
+
+```text
+CSV/source -> validated MarketData -> OIS + SOFR curves -> pricing/risk -> schema 1.0 export
 ```
 
-## Validation
+Regenerate every tracked example table, report, and figure with:
 
-The suite covers day-count/schedule logic, IMM detection, monotone positive DFs,
-zero-convexity identities at σ = 0, futures and swap repricing, shifted-LMM
-caplet-vol identities, basis-vol minimization, and — when QuantLib is installed —
-par-rate agreement to within 0.5 bp (`tests/test_quantlib_alignment.py`).
+```bash
+python scripts/regenerate_outputs.py
+```
 
-## Limitations & extensions
+## Validation and controls
 
-Synthetic, internally consistent data; weekend-only holiday calendar; constant-σ
-specialization of Hull-White (time-dependent σ(t) is the natural extension); a
-deterministic SOFR-OIS basis; and a projection-ratio float leg rather than full
-daily SOFR compounding (the source of the sub-bp QuantLib gap). Natural next
-steps: real market snapshots, exact-schedule swap construction to tighten the
-QuantLib match, full LMM Monte Carlo, and extending risk to caps/floors and
-swaptions.
+The suite covers date/day-count logic, input normalization, curve positivity,
+futures and swap repricing, smoothness-proxy boundary reporting, optimizer
+failure handling, Hull-White identities and round trips, LIBOR extension
+identities, snapshot contract enforcement, PV01 sign/bump normalization,
+key-rate reconciliation, and optional QuantLib alignment.
+
+GitHub Actions runs core tests, Ruff, and mypy across Python 3.10-3.13. A
+separate job installs QuantLib so the external-library check cannot silently
+skip in CI.
+
+## Known limitations and next steps
+
+- Synthetic data only; the repository does not yet include a versioned market
+  data acquisition/generation pipeline.
+- Weekend-only calendar and simplified schedules; no payment lag, observation
+  shift, lockout, or holiday calendar.
+- No realized-fixing split for prompt futures and no full daily compounded SOFR
+  coupon implementation.
+- OIS discount factors start from supplied zero pillars rather than an
+  independent OIS instrument bootstrap.
+- Constant-parameter Hull-White and synthetic swaption surface; no independent
+  option-pricing benchmark is part of the core suite.
+- Deterministic basis and diagnostic shifted-LMM layer; no full LMM Monte Carlo.
+- The QuantLib bridge validates swap-pricing alignment using the engine's
+  curves, not independent curve construction.
+
+The natural next validation milestone is an independently sourced market
+snapshot with exact schedules, daily SOFR compounding, known-fixing treatment,
+and trusted price/Greek benchmarks.
+
+## License
+
+MIT. See `LICENSE`.

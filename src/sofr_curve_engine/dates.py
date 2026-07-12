@@ -6,7 +6,6 @@ from datetime import date, timedelta
 from .calendars import adjust_business_day
 from .utils import ensure_date
 
-
 FREQUENCY_TO_MONTHS = {
     "MONTHLY": 1,
     "QUARTERLY": 3,

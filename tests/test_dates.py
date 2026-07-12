@@ -1,6 +1,6 @@
 from datetime import date
 
-from src.dates import generate_schedule, is_imm_date, next_imm_date
+from sofr_curve_engine.dates import generate_schedule, is_imm_date, next_imm_date
 
 
 def test_next_imm_date_from_regular_day() -> None:

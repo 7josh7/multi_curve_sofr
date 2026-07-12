@@ -1,11 +1,34 @@
 {
   "model_scope": "OIS/SOFR Hull-White + shifted-lognormal forward LIBOR calibration",
   "basis_calibration_tenor_years": 5.0,
-  "curve_hw_sigma": 0.01,
+  "curve_hw_sigma": 0.0010000000679601041,
   "basis_implied_hw_sigma": 0.011073264483627792,
   "mean_shifted_lmm_vol": 0.21021946930816787,
   "max_shifted_lmm_vol": 0.33,
-  "mean_basis_vol_at_curve_sigma": 0.012141468518912448,
+  "mean_basis_vol_at_curve_sigma": 0.015298342308637136,
   "mean_basis_vol_at_optimal_sigma": 0.012066671307863501,
-  "synthetic_calibration_rows": 20
+  "synthetic_calibration_rows": 20,
+  "curve_calibration": {
+    "method": "sofr_curve_smoothness_regularization_proxy",
+    "converged": true,
+    "objective_value": 1.937468426524586e-05,
+    "message": "Solution found.; sigma is pinned to the lower bound and is a regularization proxy, not option-implied volatility",
+    "iterations": 43,
+    "function_evaluations": 43,
+    "parameter_values": {
+      "sigma": 0.0010000000679601041,
+      "a_fixed": 0.03
+    },
+    "parameter_bounds": {
+      "sigma": [
+        0.001,
+        0.05
+      ]
+    },
+    "boundary_hit": true,
+    "boundary_hits": {
+      "sigma": "lower"
+    },
+    "is_regularization_proxy": true
+  }
 }

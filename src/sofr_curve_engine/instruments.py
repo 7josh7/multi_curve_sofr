@@ -74,7 +74,7 @@ def build_periods(
 ) -> list[CashflowPeriod]:
     schedule = generate_schedule(start_date, end_date, frequency, calendar=calendar, roll=roll)
     periods: list[CashflowPeriod] = []
-    for start, end in zip(schedule[:-1], schedule[1:]):
+    for start, end in zip(schedule[:-1], schedule[1:], strict=True):
         periods.append(
             CashflowPeriod(
                 start_date=ensure_date(start),

@@ -6,6 +6,12 @@ docs/*
 __pycache__/
 *.py[cod]
 *.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
 # Jupyter
 .ipynb_checkpoints/
 

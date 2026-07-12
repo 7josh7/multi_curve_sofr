@@ -5,14 +5,15 @@ from datetime import date
 
 import pytest
 
-from src.curves import DiscountCurve
-from src.hw_model import (
+from sofr_curve_engine.curves import DiscountCurve
+from sofr_curve_engine.hw_model import (
     A_const_sigma,
     SwaptionQuote,
     U_j_const_sigma,
     atm_normal_vol,
     calibrate_hw,
     convexity_1m,
+    implied_forward_from_3m_future,
     swaption_price_hw,
     zcb_call,
     zcb_put,
@@ -52,6 +53,16 @@ def test_convexity_zero_sigma() -> None:
 
 def test_three_month_u_term_zero_sigma() -> None:
     assert abs(U_j_const_sigma(a=0.03, sigma=0.0, T_prev=0.5, T_curr=0.75)) < 1e-12
+
+
+def test_three_month_implied_forward_matches_bootstrap_identity() -> None:
+    future_rate = 0.05
+    tau = 0.25
+    adjustment = U_j_const_sigma(a=0.03, sigma=0.01, T_prev=0.75, T_curr=1.0)
+
+    implied = implied_forward_from_3m_future(future_rate, tau, adjustment)
+
+    assert 1.0 + tau * implied == pytest.approx((1.0 + tau * future_rate) * math.exp(adjustment))
 
 
 def test_a_term_is_one_when_sigma_is_zero() -> None:
@@ -107,7 +118,7 @@ def test_payer_receiver_put_call_parity(ois_curve: DiscountCurve) -> None:
     receiver = swaption_price_hw(a, sigma, ois_curve, T_exp, payment_times, coupons, is_payer=False)
 
     # At t=0, forward swap value for the fixed-rate receiver = CB(0) - P(0,T_exp)
-    cb0 = sum(c * ois_curve.df(T) for c, T in zip(coupons, payment_times))
+    cb0 = sum(c * ois_curve.df(T) for c, T in zip(coupons, payment_times, strict=True))
     fwd_swap_recv = cb0 - ois_curve.df(T_exp)
 
     assert abs((receiver - payer) - fwd_swap_recv) < 1e-8

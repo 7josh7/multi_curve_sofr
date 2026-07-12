@@ -1,0 +1,4 @@
+# Install the project and developer tooling under the shared compatibility
+# constraints. QuantLib remains an explicit optional check.
+-c constraints.txt
+-e .[dev]

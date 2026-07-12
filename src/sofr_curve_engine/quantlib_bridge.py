@@ -1,8 +1,8 @@
-"""Independent QuantLib cross-check for the SOFR curve/risk engine.
+"""QuantLib swap-pricing cross-check for the SOFR curve/risk engine.
 
 Reuses the engine's exported market snapshot and reprices the same SOFR swaps
-with QuantLib's own OIS machinery, so any disagreement is a genuine
-third-party check rather than the engine grading its own homework.
+with QuantLib's own OIS machinery. This checks pricing/convention alignment on
+the engine's curves; it is not an independent curve bootstrap.
 
 QuantLib is an optional dependency: import it lazily so the core engine still
 runs when it is absent (this is the "when available" comparison).
@@ -18,7 +18,7 @@ try:
 except ImportError:  # ponytail: optional dep. Comparison is skipped, engine unaffected.
     ql = None
 
-# Conventions mirror data/metadata/conventions.yaml (WEEKEND calendar, ACT/360).
+# Conventions mirror data/metadata/conventions.json (WEEKEND calendar, ACT/360).
 _VAL = (2025, 4, 15)
 
 
@@ -78,14 +78,15 @@ def compare_swaps(snapshot_path: str | Path, swaps_csv: str | Path) -> list[dict
 
 
 def _main():
-    root = Path(__file__).resolve().parent.parent
+    root = Path(__file__).resolve().parents[2]
     rows = compare_swaps(root / "outputs/curves/sofr_market_snapshot.json",
                          root / "data/market/sofr_swaps.csv")
     out = root / "outputs/tables/quantlib_comparison.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
-        w.writeheader(); w.writerows(rows)
+        w.writeheader()
+        w.writerows(rows)
     worst = max(abs(r["diff_bp"]) for r in rows)
     print(f"Wrote {out}  (max |diff| = {worst:.3f} bp vs QuantLib)")
 
@@ -96,7 +97,7 @@ def _main():
         plt.figure(figsize=(8, 4))
         plt.bar([r["tenor"] for r in rows], [r["diff_bp"] for r in rows], color="#3b6ea5")
         plt.axhline(0, color="black", lw=0.8)
-        plt.ylabel("Engine - QuantLib par rate (bp)")
+        plt.ylabel("QuantLib - engine par rate (bp)")
         plt.title("SOFR swap par-rate agreement vs QuantLib")
         plt.tight_layout()
         fig = root / "outputs/figures/quantlib_par_rate_diff.png"
