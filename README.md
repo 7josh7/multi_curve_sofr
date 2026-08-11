@@ -1,5 +1,9 @@
 # Collateral-Aware SOFR Curve & Risk Engine
 
+> **Port status:** Python research prototype. Being ported to C++20 in
+> [quantlib-irc-lab](https://github.com/7josh7/quantlib-irc-lab). Kept as the
+> reference implementation for cross-validation.
+
 A typed Python package for building separate OIS discount and SOFR projection
 curves, pricing fixed-vs-SOFR swaps, and producing curve and scenario risk. The
 repository ships a synthetic snapshot so the workflow is reproducible without
